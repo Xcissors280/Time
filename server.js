@@ -1,5 +1,5 @@
-// Simplified single-file server.js for faster deployment
-const http = require('http');
+// Time server for Windows 10 EOL countdown
+// This is a pure Cloudflare Worker script with no require statements
 
 // List of allowed origins
 const allowedOrigins = [
@@ -8,41 +8,46 @@ const allowedOrigins = [
   'https://windows-10-eol.atserver.us'
 ];
 
-// Create a simple HTTP server
-const server = http.createServer((req, res) => {
+// This is the entry point for Cloudflare Workers
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request));
+});
+
+async function handleRequest(request) {
   // Handle CORS
-  const origin = req.headers.origin;
+  const origin = request.headers.get('Origin') || '';
   
   // Set CORS headers if origin is allowed
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
+  const corsHeaders = {};
+  if (allowedOrigins.includes(origin)) {
+    corsHeaders['Access-Control-Allow-Origin'] = origin;
+    corsHeaders['Access-Control-Allow-Methods'] = 'GET';
   }
   
   // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return;
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders
+    });
   }
   
-  // Only allow GET requests to the root path
-  if (req.method === 'GET' && req.url === '/') {
-    // Get current timestamp
-    const now = Date.now();
-    
-    // Return as plain text
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(now.toString());
-  } else {
-    // Handle other requests
-    res.writeHead(404);
-    res.end('Not found');
+  // If not an allowed origin and not a preflight request
+  if (!allowedOrigins.includes(origin) && request.method !== 'OPTIONS') {
+    return new Response('Access denied: Origin not allowed', {
+      status: 403,
+      headers: { 'Content-Type': 'text/plain' }
+    });
   }
-});
-
-// Start server
-const port = process.env.PORT || 3000;
-server.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+  
+  // Get current timestamp in milliseconds
+  const now = Date.now();
+  
+  // Return as plain text
+  return new Response(now.toString(), {
+    headers: {
+      'Content-Type': 'text/plain',
+      ...corsHeaders
+    }
+  });
+}
