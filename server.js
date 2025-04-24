@@ -1,8 +1,5 @@
-// Node.js express server for time.atserver.us
-const express = require('express');
-const cors = require('cors');
-const app = express();
-const port = process.env.PORT || 3000;
+// Simplified single-file server.js for faster deployment
+const http = require('http');
 
 // List of allowed origins
 const allowedOrigins = [
@@ -11,33 +8,41 @@ const allowedOrigins = [
   'https://windows-10-eol.atserver.us'
 ];
 
-// CORS middleware with origin restriction
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('CORS policy: Origin not allowed'), false);
-    }
-    
-    return callback(null, true);
-  }
-}));
-
-// Time endpoint
-app.get('/', (req, res) => {
-  // Get current timestamp in milliseconds
-  const now = Date.now();
+// Create a simple HTTP server
+const server = http.createServer((req, res) => {
+  // Handle CORS
+  const origin = req.headers.origin;
   
-  // Return as plain text
-  res.setHeader('Content-Type', 'text/plain');
-  res.send(now.toString());
+  // Set CORS headers if origin is allowed
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+  }
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+  
+  // Only allow GET requests to the root path
+  if (req.method === 'GET' && req.url === '/') {
+    // Get current timestamp
+    const now = Date.now();
+    
+    // Return as plain text
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end(now.toString());
+  } else {
+    // Handle other requests
+    res.writeHead(404);
+    res.end('Not found');
+  }
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Time server running on port ${port}`);
+// Start server
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
-
-module.exports = app; // For testing purposes
