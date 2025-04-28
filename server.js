@@ -4,7 +4,7 @@
 const allowedOrigins = [
   'https://windows-10-eol.pages.dev',
   'https://ripwindows10.com',
-  'https://windows-10-eol.atserver.us'
+  'https://windows-10-eol.atserver.us',
   'https://cf-test.atserver.us'
 ];
 
